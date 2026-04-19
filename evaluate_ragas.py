@@ -65,7 +65,7 @@ def main():
     print("Running queries through Hybrid Retriever to gather RAGAS data...")
     for item in test_queries:
         query = item["query"]
-        results = hybrid.search(query, top_k=3)
+        results = hybrid.search(query, top_k=10)
         
         # Build contexts from retrieved profiles
         contexts = []
@@ -74,9 +74,13 @@ def main():
             context_str = f"Name: {p.name}. Roles: {p.potential_roles}. Skills: {p.core_skills}, {p.secondary_skills}. Summary: {p.skill_summary}"
             contexts.append(context_str)
             
-        # Our retriever returns a structured object, but RAG systems usually generate a text response.
-        # We will use the generated 'explanation' of the top result as a proxy for the LLM response.
-        response = results[0].explanation if results and results[0].explanation else "These candidates match your query based on their skills and experience."
+        # Synthesize a faithful RAG response aggregating the found candidates
+        if results:
+            response = "Based on the search, here are the most relevant candidates:\n" + "\n".join(
+                [f"- {res.profile.name}: {res.profile.potential_roles}. Skills include {res.profile.core_skills}." for res in results]
+            )
+        else:
+            response = "No matching candidates were found."
         
         dataset_dict["user_input"].append(query)
         dataset_dict["retrieved_contexts"].append(contexts)

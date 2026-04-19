@@ -6,10 +6,15 @@ This project implements a production-grade, multi-stage hybrid candidate retriev
 The system provides an interactive frontend UI with explainable results, ensuring transparency in why specific candidates were matched.
 
 ## Team Members
-* [Your Name / GitHub Profile]
-* [Member 2 Name / GitHub Profile]
-* [Member 3 Name / GitHub Profile]
-* [Member 4 Name / GitHub Profile]
+Aman Kumar
+Anant Kumar
+Akshat Tripathi
+Ankit Saini
+Arindam Mukherjee
+Somesh Dahiya
+Mahak Aggarwal
+Kripa Kanodia
+T Monica
 
 ## Features
 - **Hybrid Retrieval Pipeline:** Combines BM25, FAISS, and Knowledge Graph (Neo4j) for highly accurate and context-aware candidate matching.

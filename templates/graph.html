@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Graph | Hybrid Retrieval System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ─── Header ─────────────────────────────── */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.5rem;
+            background: rgba(0, 0, 0, 0.03);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+            flex-shrink: 0;
+            gap: 1rem;
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a855f7, #06b6d4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            white-space: nowrap;
+        }
+
+        .nav-link {
+            color: #64748b;
+            text-decoration: none;
+            font-size: 0.85rem;
+            padding: 0.4rem 0.85rem;
+            border-radius: 0.4rem;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background: rgba(0, 0, 0, 0.07);
+            color: #0f172a;
+        }
+
+        /* ─── Controls bar ───────────────────────── */
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 0.6rem 1.5rem;
+            background: rgba(0, 0, 0, 0.02);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.82rem;
+            color: #64748b;
+        }
+
+        .control-group label {
+            white-space: nowrap;
+        }
+
+        input[type=range] {
+            accent-color: #a855f7;
+            width: 100px;
+            cursor: pointer;
+        }
+
+        .search-input {
+            background: rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 0.4rem;
+            color: #0f172a;
+            padding: 0.3rem 0.7rem;
+            font-size: 0.82rem;
+            width: 160px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: #a855f7;
+        }
+
+        .search-input::placeholder {
+            color: #475569;
+        }
+
+        /* ─── Stats ──────────────────────────────── */
+        .stats-bar {
+            display: flex;
+            gap: 1.5rem;
+            padding: 0.4rem 1.5rem;
+            background: rgba(0, 0, 0, 0.015);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.78rem;
+        }
+
+        .stat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .stat-dot.skill {
+            background: #a855f7;
+            box-shadow: 0 0 5px #a855f7aa;
+        }
+
+        .stat-dot.candidate {
+            background: #06b6d4;
+            box-shadow: 0 0 5px #06b6d4aa;
+        }
+
+        .stat-label {
+            color: #475569;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #334155;
+        }
+
+        /* ─── Graph canvas ───────────────────────── */
+        #graph-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        svg#graph {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ─── Tooltip ────────────────────────────── */
+        #tooltip {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(168, 85, 247, 0.5);
+            border-radius: 0.5rem;
+            padding: 0.65rem 0.9rem;
+            pointer-events: none;
+            display: none;
+            font-size: 0.82rem;
+            max-width: 220px;
+            backdrop-filter: blur(8px);
+            z-index: 100;
+        }
+
+        #tooltip .tt-title {
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+            color: #0f172a;
+        }
+
+        #tooltip .tt-detail {
+            color: #64748b;
+            font-size: 0.75rem;
+        }
+
+        /* ─── Legend ─────────────────────────────── */
+        .legend {
+            position: absolute;
+            bottom: 1.25rem;
+            left: 1.25rem;
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 0.65rem;
+            padding: 0.85rem 1.1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .legend h4 {
+            font-size: 0.72rem;
+            color: #475569;
+            margin-bottom: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.35rem;
+            font-size: 0.8rem;
+        }
+
+        .legend-circle {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .legend-note {
+            margin-top: 0.6rem;
+            font-size: 0.71rem;
+            color: #334155;
+            line-height: 1.5;
+        }
+
+        /* ─── Zoom buttons ───────────────────────── */
+        .zoom-btns {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .z-btn {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 0.35rem;
+            color: #64748b;
+            width: 32px;
+            height: 32px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .z-btn:hover {
+            background: rgba(168, 85, 247, 0.15);
+            color: #a855f7;
+            border-color: #a855f7;
+        }
+
+        /* ─── Loading overlay ────────────────────── */
+        #loading {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            gap: 0.85rem;
+            z-index: 50;
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(168, 85, 247, 0.2);
+            border-top-color: #a855f7;
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header>
+        <h1>🕸️ Knowledge Graph — Neo4j</h1>
+        <div style="display:flex;align-items:center;gap:1rem;">
+            <span style="font-size:0.78rem;color:#334155;">Scroll to zoom · drag nodes · hover to inspect</span>
+            <a href="/" class="nav-link">← Back to Search</a>
+        </div>
+    </header>
+
+    <!-- Controls -->
+    <div class="controls-bar">
+        <div class="control-group">
+            <label for="skill-slider">Top Skills:</label>
+            <input type="range" id="skill-slider" min="10" max="80" value="20" step="5">
+            <span id="skill-val" style="color:#a855f7;font-weight:600;">20</span>
+        </div>
+        <div class="control-group">
+            <label for="cand-slider">Max Candidates:</label>
+            <input type="range" id="cand-slider" min="10" max="100" value="30" step="10">
+            <span id="cand-val" style="color:#06b6d4;font-weight:600;">30</span>
+        </div>
+        <div class="control-group">
+            <label>Search:</label>
+            <input type="text" class="search-input" id="node-search" placeholder="Filter nodes…">
+        </div>
+        <div class="control-group">
+            <label>
+                <input type="checkbox" id="show-candidates" checked style="accent-color:#06b6d4;">
+                Candidates
+            </label>
+        </div>
+        <button class="nav-link" id="reload-btn" style="cursor:pointer;">↺ Reload</button>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="stats-bar">
+        <div class="stat">
+            <div class="stat-dot skill"></div><span class="stat-label">Total Skills:</span><span class="stat-value"
+                id="s-skill">—</span>
+        </div>
+        <div class="stat">
+            <div class="stat-dot candidate"></div><span class="stat-label">Total Candidates:</span><span
+                class="stat-value" id="s-cand">—</span>
+        </div>
+        <div class="stat"><span class="stat-label">Graph Edges:</span><span class="stat-value" id="s-edges">—</span>
+        </div>
+        <div class="stat"><span class="stat-label">Showing:</span><span class="stat-value" id="s-shown">—</span></div>
+    </div>
+
+    <!-- Graph -->
+    <div id="graph-container">
+        <div id="loading">
+            <div class="spinner"></div>
+            <span style="color:#475569;font-size:0.88rem;">Querying Neo4j graph…</span>
+        </div>
+        <svg id="graph"></svg>
+
+        <div class="legend">
+            <h4>Node Types</h4>
+            <div class="legend-item">
+                <div class="legend-circle" style="background:#a855f7;box-shadow:0 0 5px #a855f7;"></div>
+                <span>Skill</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-circle" style="background:#06b6d4;box-shadow:0 0 5px #06b6d4;"></div>
+                <span>Candidate</span>
+            </div>
+            <div class="legend-note">
+                Node size = connections<br>
+                <span style="color:#a855f7;">─</span> HAS_SKILL relationship
+            </div>
+        </div>
+
+        <div class="zoom-btns">
+            <button class="z-btn" id="btn-zi">+</button>
+            <button class="z-btn" id="btn-zo">−</button>
+            <button class="z-btn" id="btn-zr" title="Reset">⌖</button>
+        </div>
+
+        <div id="tooltip">
+            <div class="tt-title" id="tt-title"></div>
+            <div class="tt-detail" id="tt-type"></div>
+            <div class="tt-detail" id="tt-degree"></div>
+        </div>
+    </div>
+
+    <script>
+        let simulation = null;
+        let svgEl = null;
+        let zoomBeh = null;
+        let allNodes = [], allEdges = [];
+
+        // ─── Sliders ──────────────────────────────────────────────
+        const skillSlider = document.getElementById('skill-slider');
+        const candSlider = document.getElementById('cand-slider');
+        const skillVal = document.getElementById('skill-val');
+        const candVal = document.getElementById('cand-val');
+        skillSlider.addEventListener('input', () => { skillVal.textContent = skillSlider.value; });
+        candSlider.addEventListener('input', () => { candVal.textContent = candSlider.value; });
+
+        let searchTimeout = null;
+        document.getElementById('reload-btn').addEventListener('click', loadGraph);
+        document.getElementById('show-candidates').addEventListener('change', applyFilter);
+        document.getElementById('node-search').addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(loadGraph, 400); // debounce
+        });
+
+        // ─── Load ─────────────────────────────────────────────────
+        async function loadGraph() {
+            document.getElementById('loading').style.display = 'flex';
+            if (simulation) simulation.stop();
+
+            const ms = skillSlider.value;
+            const mc = candSlider.value;
+            const term = document.getElementById('node-search').value.trim();
+            const res = await fetch(`/graph-data?max_skills=${ms}&max_candidates=${mc}&search_term=${encodeURIComponent(term)}`);
+            const data = await res.json();
+
+            allNodes = data.nodes;
+            allEdges = data.edges;
+
+            // Stats
+            document.getElementById('s-skill').textContent = data.stats.skill_nodes.toLocaleString();
+            document.getElementById('s-cand').textContent = data.stats.candidate_nodes.toLocaleString();
+            document.getElementById('s-edges').textContent = data.stats.total_edges.toLocaleString();
+
+            applyFilter();
+        }
+
+        // ─── Filter ───────────────────────────────────────────────
+        function applyFilter() {
+            const showCand = document.getElementById('show-candidates').checked;
+
+            let nodes = allNodes.filter(n => showCand || n.type === 'skill');
+            const nodeSet = new Set(nodes.map(n => n.id));
+            const edges = allEdges.filter(e =>
+                nodeSet.has(e.source.id || e.source) && nodeSet.has(e.target.id || e.target)
+            );
+
+            document.getElementById('s-shown').textContent =
+                `${nodes.length} nodes · ${edges.length} edges`;
+
+            renderGraph(nodes, edges);
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // ─── Render ───────────────────────────────────────────────
+        function renderGraph(nodes, edges) {
+            const container = document.getElementById('graph-container');
+            const W = container.clientWidth;
+            const H = container.clientHeight;
+
+            d3.select('#graph').selectAll('*').remove();
+            const svg = d3.select('#graph');
+            svgEl = svg;
+
+            zoomBeh = d3.zoom().scaleExtent([0.05, 8]).on('zoom', e => g.attr('transform', e.transform));
+            svg.call(zoomBeh);
+
+            // Controls
+            document.getElementById('btn-zi').onclick = () => svg.transition().call(zoomBeh.scaleBy, 1.5);
+            document.getElementById('btn-zo').onclick = () => svg.transition().call(zoomBeh.scaleBy, 0.67);
+            document.getElementById('btn-zr').onclick = () => svg.transition().call(zoomBeh.transform, d3.zoomIdentity.translate(W / 2, H / 2).scale(0.7));
+
+            const defs = svg.append('defs');
+
+            // Glow filter
+            const glow = defs.append('filter').attr('id', 'glow').attr('x', '-50%').attr('y', '-50%').attr('width', '200%').attr('height', '200%');
+            glow.append('feGaussianBlur').attr('in', 'SourceGraphic').attr('stdDeviation', '3').attr('result', 'blur');
+            const feMerge = glow.append('feMerge');
+            feMerge.append('feMergeNode').attr('in', 'blur');
+            feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+
+            const g = svg.append('g');
+            // Start slightly centered
+            svg.call(zoomBeh.transform, d3.zoomIdentity.translate(W / 2, H / 2).scale(0.75));
+
+            // ── Force simulation ──────────────────────────────────
+            const termRadius = d => {
+                const base = d.type === 'skill' ? 12 : 7;
+                return Math.min(base + Math.sqrt(d.degree || 1) * 1.8, 30);
+            };
+
+            simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(edges).id(d => d.id)
+                    .distance(d => 110)
+                    .strength(0.6))
+                .force('charge', d3.forceManyBody()
+                    .strength(d => d.type === 'skill' ? -600 : -250)
+                    .distanceMax(600))
+                .force('collision', d3.forceCollide().radius(d => termRadius(d) + 12).strength(1.0))
+                // Separate skill vs candidate nodes into two regions
+                .force('x', d3.forceX(d => d.type === 'skill' ? 0 : 0).strength(0.04))
+                .force('y', d3.forceY(d => d.type === 'skill' ? -80 : 80).strength(0.06))
+                .alphaDecay(0.06)
+                .velocityDecay(0.75);
+
+            // ── Edges ─────────────────────────────────────────────
+            const linkG = g.append('g').attr('class', 'links')
+                .selectAll('g')
+                .data(edges)
+                .join('g');
+
+            const link = linkG.append('line')
+                .attr('stroke', 'rgba(168,85,247,0.12)')
+                .attr('stroke-width', 1);
+
+            const linkText = linkG.append('text')
+                .text(d => d.label || '')
+                .attr('font-size', '6px')
+                .attr('fill', 'rgba(148, 163, 184, 0.4)')
+                .attr('text-anchor', 'middle')
+                .attr('dy', -2.5)
+                .style('pointer-events', 'none');
+
+            // ── Nodes ─────────────────────────────────────────────
+            const nodeG = g.append('g').attr('class', 'nodes')
+                .selectAll('g')
+                .data(nodes)
+                .join('g')
+                .attr('cursor', 'pointer')
+                .call(d3.drag()
+                    .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+                    .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+                    .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
+
+            nodeG.append('circle')
+                .attr('r', termRadius)
+                .attr('fill', d => d.type === 'skill'
+                    ? 'rgba(168,85,247,0.82)'
+                    : 'rgba(6,182,212,0.65)')
+                .attr('stroke', d => d.type === 'skill' ? '#a855f7' : '#06b6d4')
+                .attr('stroke-width', 1.5)
+                .style('filter', d => d.degree > 4 ? 'url(#glow)' : 'none');
+
+            // Labels only for skill nodes or highly-connected candidates
+            nodeG.append('text')
+                .text(d => d.label)
+                .attr('text-anchor', 'middle')
+                .attr('dy', d => termRadius(d) + 10)
+                .attr('font-size', d => d.type === 'skill' ? '8.5px' : '7.5px')
+                .attr('fill', d => d.type === 'skill' ? '#d8b4fe' : '#67e8f9')
+                .style('pointer-events', 'none')
+                .style('display', d => (d.type === 'skill' || d.degree > 3) ? 'block' : 'none');
+
+            // ── Tooltip & highlight ───────────────────────────────
+            const tooltip = document.getElementById('tooltip');
+            const connectedTo = new Map(); // node id → set of neighbor ids
+            edges.forEach(e => {
+                const s = e.source.id || e.source;
+                const t = e.target.id || e.target;
+                if (!connectedTo.has(s)) connectedTo.set(s, new Set());
+                if (!connectedTo.has(t)) connectedTo.set(t, new Set());
+                connectedTo.get(s).add(t);
+                connectedTo.get(t).add(s);
+            });
+
+            nodeG
+                .on('mouseover', (event, d) => {
+                    // Highlight connected nodes/edges, dim others
+                    const neighbors = connectedTo.get(d.id) || new Set();
+                    nodeG.style('opacity', n => (n.id === d.id || neighbors.has(n.id)) ? 1 : 0.12);
+                    link.style('opacity', e => {
+                        const s = e.source.id || e.source;
+                        const t = e.target.id || e.target;
+                        return (s === d.id || t === d.id) ? 0.9 : 0.04;
+                    }).attr('stroke-width', e => {
+                        const s = e.source.id || e.source;
+                        const t = e.target.id || e.target;
+                        return (s === d.id || t === d.id) ? 2 : 1;
+                    });
+
+                    document.getElementById('tt-title').textContent = d.label;
+                    document.getElementById('tt-type').textContent = d.type === 'skill' ? '🟣 Property node' : '🔵 Candidate node';
+                    document.getElementById('tt-degree').textContent = `${d.degree} connection${d.degree !== 1 ? 's' : ''}`;
+                    tooltip.style.display = 'block';
+
+                    if (typeof linkText !== 'undefined') {
+                        linkText.style('opacity', e => {
+                            const s = e.source.id || e.source;
+                            const t = e.target.id || e.target;
+                            return (s === d.id || t === d.id) ? 1 : 0.04;
+                        }).attr('fill', e => {
+                            const s = e.source.id || e.source;
+                            const t = e.target.id || e.target;
+                            return (s === d.id || t === d.id) ? '#d8b4fe' : 'rgba(148, 163, 184, 0.4)';
+                        });
+                    }
+                })
+                .on('mousemove', e => {
+                    tooltip.style.left = (e.clientX + 14) + 'px';
+                    tooltip.style.top = (e.clientY - 10) + 'px';
+                })
+                .on('mouseout', () => {
+                    nodeG.style('opacity', 1);
+                    link.style('opacity', 0.12).attr('stroke-width', 1);
+                    if (typeof linkText !== 'undefined') {
+                        linkText.style('opacity', 1).attr('fill', 'rgba(148, 163, 184, 0.4)');
+                    }
+                    tooltip.style.display = 'none';
+                });
+
+            // ── Tick ──────────────────────────────────────────────
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+
+                linkText
+                    .attr('x', d => (d.source.x + d.target.x) / 2)
+                    .attr('y', d => (d.source.y + d.target.y) / 2)
+                    .attr('transform', d => {
+                        const cx = (d.source.x + d.target.x) / 2;
+                        const cy = (d.source.y + d.target.y) / 2;
+                        let angle = Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x) * 180 / Math.PI;
+                        if (angle > 90 || angle < -90) angle += 180;
+                        return `rotate(${angle}, ${cx}, ${cy})`;
+                    });
+
+                nodeG.attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+        }
+
+        // ─── Init ─────────────────────────────────────────────────
+        loadGraph();
+    </script>
+</body>
+
+</html>

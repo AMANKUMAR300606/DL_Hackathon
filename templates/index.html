@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid Retrieval System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg: #f8fafc;
+            --bg-secondary: #ffffff;
+            --card: rgba(255, 255, 255, 0.8);
+            --card-border: rgba(0, 0, 0, 0.08);
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            
+            --lexical: #d97706;
+            --semantic: #0891b2;
+            --graph: #7c3aed;
+            --cross: #4f46e5;
+            
+            --glow: 0 0 15px rgba(99, 102, 241, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.05), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(167, 139, 250, 0.05), transparent 25%);
+            background-attachment: fixed;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem;
+        }
+
+        /* ─── Header ─── */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 3rem;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a78bfa, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .graph-btn {
+            background: rgba(0, 0, 0, 0.03);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            border: 1px solid var(--card-border);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            backdrop-filter: blur(8px);
+        }
+
+        .graph-btn:hover {
+            background: rgba(0, 0, 0, 0.06);
+            border-color: rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .add-profile-btn {
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            border: none;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, box-shadow 0.2s;
+            box-shadow: var(--glow);
+        }
+        
+        .add-profile-btn:hover { 
+            opacity: 0.9;
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.3);
+        }
+
+        /* ─── Search UI ─── */
+        .search-container {
+            margin-bottom: 3rem;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        .search-form {
+            display: flex;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 0.5rem;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .search-form:focus-within {
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 4px 30px rgba(99, 102, 241, 0.15);
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 1rem 1.2rem;
+            font-size: 1.1rem;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            outline: none;
+        }
+        
+        input[type="text"]::placeholder {
+            color: #52525b;
+        }
+
+        .search-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding-right: 0.2rem;
+        }
+
+        select[name="limit"] {
+            padding: 0.6rem 0.8rem;
+            background: rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--muted);
+            outline: none;
+            font-family: inherit;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        select[name="limit"] option {
+            background: var(--bg-secondary);
+            color: var(--text);
+        }
+
+        .search-btn {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 0.6rem;
+            padding: 0 1.5rem;
+            height: 100%;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .search-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        /* ─── Intent / Thinking Card ─── */
+        .intent-card {
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 1.25rem 1.5rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            animation: fadeIn 0.5s ease-out;
+            backdrop-filter: blur(10px);
+        }
+
+        .intent-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #818cf8;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .intent-card p {
+            font-size: 0.95rem;
+            color: #334155;
+            margin: 0.3rem 0;
+        }
+        
+        .intent-card strong {
+            color: var(--text);
+        }
+
+        /* ─── Results ─── */
+        h2.results-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--muted);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .results-title::before {
+            content: '';
+            display: inline-block;
+            width: 1rem;
+            height: 2px;
+            background: var(--border);
+        }
+
+        .result-card {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(12px);
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            animation: slideUp 0.5s backwards;
+        }
+
+        .result-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(0, 0, 0, 0.08);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .card-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
+
+        .score-badge {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #059669;
+            padding: 0.3rem 0.85rem;
+            border-radius: 2rem;
+            font-weight: 700;
+            font-size: 0.95rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .card-meta {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.9rem;
+            color: #475569;
+        }
+        
+        @media(min-width: 600px) {
+            .card-meta { grid-template-columns: 1fr 1fr; }
+        }
+
+        .card-meta strong {
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        /* ─── Explanation / RAG Reasoning ─── */
+        .explainer {
+            border-top: 1px solid var(--border);
+            padding-top: 1.25rem;
+            margin-top: 1.25rem;
+        }
+
+        .explainer-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .summary-box {
+            background: rgba(0, 0, 0, 0.02);
+            border-left: 3px solid var(--primary);
+            padding: 0.8rem 1rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            font-size: 0.9rem;
+            color: #1e293b;
+            margin-bottom: 1.25rem;
+            line-height: 1.6;
+        }
+
+        .source-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .source-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 0.75rem;
+            border: 1px solid rgba(0, 0, 0, 0.02);
+        }
+
+        .source-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.35rem 0.8rem;
+            border-radius: 0.4rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-width: 120px;
+        }
+
+        .badge-lexical { background: rgba(251, 191, 36, 0.1); color: var(--lexical); border: 1px solid rgba(251, 191, 36, 0.2); }
+        .badge-semantic { background: rgba(34, 211, 238, 0.1); color: var(--semantic); border: 1px solid rgba(34, 211, 238, 0.2); }
+        .badge-graph { background: rgba(167, 139, 250, 0.1); color: var(--graph); border: 1px solid rgba(167, 139, 250, 0.2); }
+        .badge-cross { background: rgba(129, 140, 248, 0.1); color: var(--cross); border: 1px solid rgba(129, 140, 248, 0.2); }
+
+        .source-detail {
+            font-size: 0.85rem;
+            color: var(--muted);
+            line-height: 1.5;
+            flex: 1;
+        }
+
+        .score-pill {
+            display: inline-block;
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            padding: 0.15rem 0.6rem;
+            border-radius: 0.3rem;
+            font-size: 0.85rem;
+            font-family: monospace;
+            font-weight: 600;
+            margin-left: 0.4rem;
+        }
+
+        .traversal-path {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.5rem;
+        }
+
+        .traversal-node {
+            background: rgba(167, 139, 250, 0.15);
+            color: #5b21b6;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid rgba(167, 139, 250, 0.4);
+        }
+
+        .traversal-arrow {
+            color: #475569;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .matched-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.5rem;
+        }
+
+        .matched-pill {
+            background: rgba(251, 191, 36, 0.1);
+            color: #b45309;
+            padding: 0.15rem 0.6rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid rgba(251, 191, 36, 0.4);
+        }
+
+        /* ── Profile Drawer ── */
+        #profile-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(4px);
+            z-index: 900;
+        }
+        #profile-drawer {
+            position: fixed; top: 0; right: -480px;
+            width: 460px; max-width: 95vw;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            box-shadow: -8px 0 40px rgba(0,0,0,0.1);
+            z-index: 901;
+            display: flex; flex-direction: column;
+            transition: right .35s cubic-bezier(.4,0,.2,1);
+        }
+        #profile-drawer.open { right: 0; }
+        .drawer-header {
+            background: rgba(0,0,0,0.03);
+            padding: 1.25rem 1.5rem;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+        .drawer-header h2 { font-size: 1.1rem; color: var(--text); }
+        .drawer-close {
+            background: transparent; border: none; color: var(--muted);
+            font-size: 1.2rem; cursor: pointer; transition: color 0.2s;
+        }
+        .drawer-close:hover { color: var(--text); }
+        
+        .drawer-tabs {
+            display: flex; border-bottom: 1px solid var(--border);
+        }
+        .drawer-tab {
+            flex: 1; padding: .85rem; border: none; background: none;
+            color: var(--muted); cursor: pointer; font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all .2s;
+        }
+        .drawer-tab.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(99,102,241,0.05); }
+        .drawer-body { flex: 1; overflow-y: auto; padding: 1.5rem; }
+        .drawer-panel { display: none; }
+        .drawer-panel.active { display: block; }
+        
+        .field-group { margin-bottom: 1.25rem; }
+        .field-group label { display: block; font-size: .85rem; color: #1e293b; margin-bottom: .4rem; }
+        .field-group small { display: block; font-size: .75rem; color: var(--muted); margin-bottom: .4rem; }
+        .field-group input, .field-group textarea {
+            width: 100%; padding: .75rem;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: .5rem; color: var(--text);
+            outline: none; transition: border-color .2s;
+        }
+        .field-group input:focus, .field-group textarea:focus { border-color: var(--primary); }
+        .field-group textarea { min-height: 80px; resize: vertical; }
+        
+        .drawer-actions {
+            padding: 1.25rem 1.5rem;
+            border-top: 1px solid var(--border);
+            background: rgba(0,0,0,0.2);
+        }
+        .btn-submit {
+            width: 100%; padding: .85rem;
+            background: var(--primary); color: #ffffff;
+            border: none; border-radius: .5rem;
+            font-weight: 600; cursor: pointer;
+            transition: background .2s;
+        }
+        .btn-submit:hover { background: var(--primary-hover); }
+        
+        #drawer-msg {
+            margin-top: 1rem; padding: .75rem; border-radius: .5rem;
+            font-size: .85rem; display: none; text-align: center;
+        }
+        #drawer-msg.ok { background: rgba(16,185,129,0.1); color: #059669; border: 1px solid rgba(16,185,129,0.2); }
+        #drawer-msg.err { background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.2); }
+        
+        .load-bar { display: flex; gap: .5rem; }
+        .btn-load {
+            padding: 0 1rem; background: var(--border); color: var(--text);
+            border: none; border-radius: .5rem; cursor: pointer;
+        }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { 
+            from { opacity: 0; transform: translateY(15px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>✦ Hybrid Retrieval System</h1>
+            <div class="header-right">
+                <a href="/graph" class="graph-btn">🕸️ Graph View</a>
+                <button class="add-profile-btn" onclick="openDrawer()">Add Profile</button>
+            </div>
+        </header>
+
+        <div class="search-container">
+            <form action="/search" method="post" class="search-form">
+                <input type="text" name="query" value="{{ query }}" placeholder="Ask anything about roles, skills, or experience..." required>
+                <div class="search-controls">
+                    <select name="limit">
+                        <option value="1" {% if limit=='1' %}selected{% endif %}>1 result</option>
+                        <option value="5" {% if limit=='5' %}selected{% endif %}>5 results</option>
+                        <option value="10" {% if limit=='10' or not limit %}selected{% endif %}>10 results</option>
+                        <option value="20" {% if limit=='20' %}selected{% endif %}>20 results</option>
+                    </select>
+                    <button type="submit" class="search-btn">→</button>
+                </div>
+            </form>
+        </div>
+
+        {% if intent %}
+        <div class="intent-card">
+            <div class="intent-header">
+                <span>⚡ Intent Analysis</span>
+            </div>
+            <p><strong>Detected Type:</strong> {{ intent.intent_type|replace('_', ' ')|title }}</p>
+            <p><strong>Query Expanded To:</strong> {{ intent.expanded_query }}</p>
+        </div>
+        {% endif %}
+
+        {% if results is not none %}
+        <h2 class="results-title">{{ results|length }} Result{{ 's' if results|length != 1 else '' }} Found</h2>
+
+        {% if results|length == 0 %}
+        <p style="color:var(--muted); text-align:center; padding: 3rem; background: var(--card); border-radius: 1rem; border: 1px dashed var(--border);">No profiles matched your specific requirements.</p>
+        {% else %}
+
+        {% for item in results %}
+        <div class="result-card delay-{{ loop.index0 % 5 }}">
+            <div class="card-header">
+                <div>
+                    <h3>{{ item.profile.name or 'Candidate ' ~ item.profile.id }}</h3>
+                    <div style="font-size: 0.9rem; color: var(--primary);">{{ item.profile.potential_roles or "Unspecified Role" }}</div>
+                </div>
+                <div class="score-badge">Score: {{ "%.4f"|format(item.score) }}</div>
+            </div>
+
+            <div class="card-meta">
+                <p><strong>Experience:</strong> {{ item.profile.years_of_experience }} years</p>
+                <p><strong>Core Skills:</strong> {{ item.profile.core_skills or "N/A" }}</p>
+                <p style="grid-column: 1 / -1;"><strong>Secondary:</strong> {{ item.profile.secondary_skills or "N/A" }}</p>
+            </div>
+
+            {% if item.explanation_detail %}
+            {% set d = item.explanation_detail %}
+            <div class="explainer">
+                <div class="explainer-title">
+                    <span>⚙️ Retrieval Reasoning</span>
+                </div>
+                
+                <div class="summary-box">
+                    {{ item.explanation }}
+                </div>
+
+                <div class="source-grid">
+                    {% if 'cross_encoder' in d.methods %}
+                    <div class="source-row">
+                        <span class="source-badge badge-cross">Cross-Encoder</span>
+                        <div class="source-detail">
+                            Final reranking confidence<span class="score-pill">{{ "%.4f"|format(d.cross_encoder_score) }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if 'semantic' in d.methods %}
+                    <div class="source-row">
+                        <span class="source-badge badge-semantic">FAISS</span>
+                        <div class="source-detail">
+                            Semantic distance: <strong>{{ d.semantic_similarity }}</strong>
+                            <span class="score-pill">{{ "%.4f"|format(d.faiss_score) }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if 'lexical' in d.methods %}
+                    <div class="source-row">
+                        <span class="source-badge badge-lexical">BM25</span>
+                        <div class="source-detail">
+                            Keyword overlap<span class="score-pill">{{ "%.4f"|format(d.bm25_score) }}</span>
+                            {% if d.lexical_matches %}
+                            <div class="matched-pills">
+                                {% for m in d.lexical_matches %}<span class="matched-pill">{{ m }}</span>{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if 'graph' in d.methods %}
+                    <div class="source-row">
+                        <span class="source-badge badge-graph">Neo4j</span>
+                        <div class="source-detail">
+                            Knowledge graph traversal<span class="score-pill">{{ "%.4f"|format(d.graph_score) }}</span>
+                            {% if d.graph_traversal %}
+                            <div class="traversal-path">
+                                {% for step in d.graph_traversal %}
+                                {% if loop.first and step.source_id != "Query" %}
+                                <span class="traversal-node">{{ step.source_id }}</span>
+                                <span class="traversal-arrow">→</span>
+                                {% elif loop.first %}
+                                <span class="traversal-node" style="color:#0f172a; background:rgba(0,0,0,0.05); border-color:rgba(0,0,0,0.1);">Query</span>
+                                <span class="traversal-arrow">→</span>
+                                {% endif %}
+
+                                <span class="traversal-node" style="
+                                    {% if step.relation == 'SEMANTIC_PROXY' %}background:rgba(251,191,36,0.15);color:#b45309;border-color:rgba(251,191,36,0.4);
+                                    {% elif step.relation == 'MATCH_ROLE' %}background:rgba(236,72,153,0.15);color:#be185d;border-color:rgba(236,72,153,0.4);
+                                    {% elif step.relation == 'HAS_CANDIDATE' %}background:rgba(34,211,238,0.15);color:#0e7490;border-color:rgba(34,211,238,0.4);
+                                    {% endif %}
+                                ">
+                                    {% if step.relation == 'HAS_CANDIDATE' %}Candidate{% else %}{{ step.target_id.title() if step.target_id else step.target_id }}{% endif %}
+                                </span>
+                                {% if not loop.last %}
+                                <span class="traversal-arrow">→</span>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% elif item.explanation %}
+            <div style="padding-top:1rem; border-top:1px solid var(--border); font-size:0.9rem; color:var(--muted); margin-top: 1rem;">
+                <strong>Reasoning:</strong> {{ item.explanation }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <!-- Profile Drawer -->
+    <div id="profile-overlay" onclick="closeDrawer()"></div>
+    <div id="profile-drawer">
+        <div class="drawer-header">
+            <div>
+                <h2>Manage Candidates</h2>
+                <p style="font-size: 0.85rem; color: var(--muted); margin-top: 0.25rem; font-weight: 400;">Add or update profiles to instantly sync them across the Vector, Graph, and Lexical indexes.</p>
+            </div>
+            <button class="drawer-close" onclick="closeDrawer()">✕</button>
+        </div>
+
+        <div class="drawer-tabs">
+            <button class="drawer-tab active" id="tab-add-btn" onclick="switchTab('add')">Add New</button>
+            <button class="drawer-tab" id="tab-update-btn" onclick="switchTab('update')">Update Existing</button>
+        </div>
+
+        <div class="drawer-body">
+            <!-- ADD PANEL -->
+            <div class="drawer-panel active" id="panel-add">
+                <div class="field-group"><label>Full Name</label><input id="add-name" type="text" placeholder="e.g. Jane Smith"></div>
+                <div class="field-group"><label>Core Skills</label><input id="add-core" type="text" placeholder="Python, SQL, Docker"></div>
+                <div class="field-group"><label>Secondary Skills</label><input id="add-secondary" type="text" placeholder="React, PostgreSQL"></div>
+                <div class="field-group"><label>Soft Skills</label><input id="add-soft" type="text" placeholder="Leadership, Communication"></div>
+                <div class="field-group"><label>Years of Experience</label><input id="add-yoe" type="number" min="0" step="0.5" placeholder="5"></div>
+                <div class="field-group"><label>Potential Roles</label><input id="add-roles" type="text" placeholder="Backend Engineer"></div>
+                <div class="field-group"><label>Skill Summary</label><textarea id="add-summary" placeholder="Brief description..."></textarea></div>
+            </div>
+
+            <!-- UPDATE PANEL -->
+            <div class="drawer-panel" id="panel-update">
+                <div class="field-group">
+                    <label>Profile ID</label>
+                    <div class="load-bar">
+                        <input id="upd-search-id" type="text" placeholder="e.g. 293009884">
+                        <button class="btn-load" onclick="loadProfile()">Load</button>
+                    </div>
+                </div>
+                <div id="upd-fields" style="opacity:0.4; pointer-events:none; transition:opacity 0.3s">
+                    <input type="hidden" id="upd-id">
+                    <div class="field-group"><label>Full Name</label><input id="upd-name" type="text"></div>
+                    <div class="field-group"><label>Core Skills</label><input id="upd-core" type="text"></div>
+                    <div class="field-group"><label>Secondary Skills</label><input id="upd-secondary" type="text"></div>
+                    <div class="field-group"><label>Soft Skills</label><input id="upd-soft" type="text"></div>
+                    <div class="field-group"><label>Years of Experience</label><input id="upd-yoe" type="number" min="0" step="0.5"></div>
+                    <div class="field-group"><label>Potential Roles</label><input id="upd-roles" type="text"></div>
+                    <div class="field-group"><label>Skill Summary</label><textarea id="upd-summary"></textarea></div>
+                </div>
+            </div>
+        </div>
+        <div class="drawer-actions">
+            <button class="btn-submit" id="drawer-submit-btn" onclick="submitDrawer()">Add Profile</button>
+            <div id="drawer-msg"></div>
+        </div>
+    </div>
+
+    <script>
+    let _activeTab = 'add';
+    function openDrawer() {
+        document.getElementById('profile-drawer').classList.add('open');
+        document.getElementById('profile-overlay').style.display = 'block';
+        clearMsg();
+    }
+    function closeDrawer() {
+        document.getElementById('profile-drawer').classList.remove('open');
+        document.getElementById('profile-overlay').style.display = 'none';
+    }
+    function switchTab(tab) {
+        _activeTab = tab;
+        ['add','update'].forEach(t => {
+            document.getElementById('tab-' + t + '-btn').classList.toggle('active', t === tab);
+            document.getElementById('panel-' + t).classList.toggle('active', t === tab);
+        });
+        document.getElementById('drawer-submit-btn').textContent = tab === 'add' ? 'Add Profile' : 'Update Profile';
+        clearMsg();
+    }
+    async function loadProfile() {
+        const pid = document.getElementById('upd-search-id').value.trim();
+        if (!pid) { showMsg('Enter a profile ID first.', 'err'); return; }
+        clearMsg();
+        try {
+            const res = await fetch('/profile/' + encodeURIComponent(pid));
+            if (!res.ok) { showMsg((await res.json()).error || 'Not found.', 'err'); return; }
+            const p = await res.json();
+            document.getElementById('upd-id').value = p.id;
+            ['name','core_skills','secondary_skills','soft_skills','years_of_experience','potential_roles','skill_summary'].forEach(f => {
+                const el = document.getElementById('upd-' + f.split('_')[0] + (f==='core_skills'?'-core':f==='secondary_skills'?'-secondary':f==='soft_skills'?'-soft':f==='years_of_experience'?'-yoe':f==='potential_roles'?'-roles':f==='skill_summary'?'-summary':''));
+                if(el) el.value = p[f] || '';
+            });
+            document.getElementById('upd-fields').style.opacity = '1';
+            document.getElementById('upd-fields').style.pointerEvents = 'auto';
+            showMsg('Loaded. Edit and update.', 'ok');
+        } catch(e) { showMsg('Error: ' + e.message, 'err'); }
+    }
+    async function submitDrawer() {
+        clearMsg();
+        const btn = document.getElementById('drawer-submit-btn');
+        btn.disabled = true; btn.textContent = 'Processing...';
+        try {
+            const isAdd = _activeTab === 'add';
+            const prefix = isAdd ? 'add-' : 'upd-';
+            if(!isAdd && !document.getElementById('upd-id').value) { showMsg('Load profile first.', 'err'); return; }
+            
+            const payload = {
+                name: document.getElementById(prefix+'name').value.trim(),
+                core_skills: document.getElementById(prefix+'core').value.trim(),
+                secondary_skills: document.getElementById(prefix+'secondary').value.trim(),
+                soft_skills: document.getElementById(prefix+'soft').value.trim(),
+                years_of_experience: parseFloat(document.getElementById(prefix+'yoe').value)||0,
+                potential_roles: document.getElementById(prefix+'roles').value.trim(),
+                skill_summary: document.getElementById(prefix+'summary').value.trim(),
+            };
+            if(!isAdd) payload.id = document.getElementById('upd-id').value.trim();
+            
+            const res = await fetch(isAdd ? '/profile/new' : '/profile/update', {
+                method: isAdd ? 'POST' : 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const j = await res.json();
+            if (j.status === 'ok') {
+                showMsg('✅ ' + j.message, 'ok');
+                if(isAdd) ['name','core','secondary','soft','yoe','roles','summary'].forEach(f => document.getElementById('add-'+f).value = '');
+            } else { showMsg('❌ ' + (j.message || 'Error'), 'err'); }
+        } catch(e) { showMsg('❌ Error: ' + e.message, 'err'); }
+        finally { btn.disabled = false; btn.textContent = _activeTab === 'add' ? 'Add Profile' : 'Update Profile'; }
+    }
+    function showMsg(t, c) { const e = document.getElementById('drawer-msg'); e.textContent = t; e.className = c; e.style.display = 'block'; }
+    function clearMsg() { document.getElementById('drawer-msg').style.display = 'none'; }
+    </script>
+</body>
+</html>

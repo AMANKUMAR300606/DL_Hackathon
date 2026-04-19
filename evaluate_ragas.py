@@ -2,14 +2,9 @@ import os
 import sys
 
 def main():
-    # RAGAS relies heavily on LLMs to grade the system.
-    # By default, it uses OpenAI's models (GPT-3.5/GPT-4) as the judge.
-    if not os.getenv("GOOGLE_API_KEY"):
-        print("[ERROR] GOOGLE_API_KEY environment variable is not set!")
-        print("RAGAS requires an LLM API key to evaluate Context Precision, Recall, Faithfulness, etc.")
-        print("\nPlease set it in your terminal before running this script:")
-        print("    $env:GOOGLE_API_KEY='AIzaSy...your-key-here'")
-        sys.exit(1)
+    # RAGAS will use Ollama models (Mistral) as the judge for a completely offline evaluation.
+    print("Running offline RAGAS evaluation using Ollama.")
+
 
     print("Importing Ragas and Dataset modules...")
     from datasets import Dataset
@@ -90,29 +85,28 @@ def main():
         
     eval_dataset = Dataset.from_dict(dataset_dict)
     
-    print("Initializing Gemini LLM and Embeddings...")
+    print("Initializing Ollama LLM and Embeddings (Fully Offline)...")
     try:
-        from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-        # ragas v0.4.x might require explicit wrappers, but usually passing langchain models works.
-        from google import genai
-        from ragas.embeddings import GoogleEmbeddings
-# The client automatically picks up the 'GEMINI_API_KEY' environment variable
-        client = genai.Client(api_key="AIzaSyD1D1HQqhchUJO5oyvXSlXDx4zOelnZ-qo")
+        from langchain_community.chat_models import ChatOllama
+        from langchain_community.embeddings import OllamaEmbeddings
+        from ragas.llms import LangchainLLMWrapper
+        from ragas.embeddings import LangchainEmbeddingsWrapper
+        
+        print("Ensure you have Ollama running locally with 'mistral' and 'nomic-embed-text' models pulled.")
+        print("Run: ollama pull mistral")
+        print("Run: ollama pull nomic-embed-text\n")
 
-
-
-        llm = llm_factory(
-            client=client,
-            model="gemini-2.5-flash",
-            provider="google"
-        )
-        embeddings = GoogleEmbeddings(client=client, model="gemini-embedding-001",provider="google")
+        langchain_llm = ChatOllama(model="mistral")
+        langchain_embeddings = OllamaEmbeddings(model="nomic-embed-text")
+        
+        llm = LangchainLLMWrapper(langchain_llm)
+        embeddings = LangchainEmbeddingsWrapper(langchain_embeddings)
     except ImportError:
-        print("[ERROR] Missing required packages for Gemini integration.")
-        print("Please run: pip install langchain-google-genai")
+        print("[ERROR] Missing required packages for Ollama integration.")
+        print("Please run: pip install langchain-community")
         sys.exit(1)
         
-    print("Starting RAGAS Evaluation (this makes calls to Gemini)...")
+    print("Starting RAGAS Evaluation (this makes offline calls to Ollama)...")
     # Evaluate using standard Ragas metrics
     metrics = [
         ContextPrecision(llm=llm),

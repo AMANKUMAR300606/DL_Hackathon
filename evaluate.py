@@ -102,8 +102,8 @@ def evaluate_system():
         
         print(f"Hybrid Retriever -> P@{k}: {p_at_k:.2f}, R@{k}: {r_at_k:.2f}, nDCG@{k}: {ndcg:.2f}")
 
-    print("\nNote: For comprehensive RAGAS evaluation without heuristics, you would need an OPENAI_API_KEY")
-    print("to utilize LLM-as-a-judge for Context Precision and Recall.")
+    print("\nNote: For comprehensive RAGAS evaluation without heuristics, you can use the evaluate_ragas.py script")
+    print("which utilizes Ollama for completely offline LLM-as-a-judge evaluation.")
 
 if __name__ == "__main__":
     evaluate_system()

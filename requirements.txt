@@ -12,3 +12,4 @@ ragas
 python-multipart
 tf-keras
 neo4j
+langchain-community
